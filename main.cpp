@@ -77,6 +77,8 @@ class Trackable {
                 if (getTimeDifferenceInMS(now, lastEntry->time) > traceTTL) {
                     trace.pop_front();
                     delete lastEntry;
+                } else {
+                    return;
                 }
             }
         }
@@ -108,6 +110,8 @@ class ObjectTracker {
                 trackable->refresh();
                 if (!trackable->hasAnyPoints()) {
                     objects.pop_front();
+                } else {
+                    return;
                 }
                 delete trackable;
             }
@@ -209,6 +213,10 @@ class ObjectTracker {
             return objects;
         }
 
+        int getTrackedCount() {
+            return objects.size();
+        }
+
 };
 
 void findRectangles(const std::vector<std::vector<cv::Point> > & contours, std::vector<std::vector<cv::Point> > & rectangles) {
@@ -270,7 +278,7 @@ void drawTraces(cv::Mat & img, ObjectTracker * objectTracker) {
         curveLengths[cid] = trace.size();
         cid++;
     }
-    cv::polylines(img, (const cv::Point **) curves, curveLengths, cid, false, cvScalar(0, 255, 255), 2);
+    cv::polylines(img, (const cv::Point **) curves, curveLengths, cid, false, cvScalar(0, 0, 255), 2);
     for (int i = 0; i < cid; i++) {
         delete[] curves[i];
     }
@@ -327,7 +335,7 @@ int main(int argc, char *argv[])
     //cv::namedWindow("Background",  CV_WINDOW_AUTOSIZE);
     //cv::namedWindow("Foreground", CV_WINDOW_AUTOSIZE);
 
-    ObjectTracker * objectTracker = new ObjectTracker(1000, 100);
+    ObjectTracker * objectTracker = new ObjectTracker(10000, 100);
 
     while (true)
     {
@@ -354,6 +362,7 @@ int main(int argc, char *argv[])
         double sec = difftime(now, prev);
         time(&prev);
         std::cout<<1./sec<<" fps"<<std::endl;
+        std::cout<<"Total objects present: "<<objectTracker->getTrackedCount()<<std::endl;
     }
 
     if (filename != NULL)
