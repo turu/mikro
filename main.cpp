@@ -17,7 +17,7 @@ int getTimeDifferenceInMS(const struct timeval & lhs, const struct timeval & rhs
         usecdiff = -usecdiff;
     }
     difference += usecdiff;
-    std::cout<<"DIF="<<difference<<std::endl;
+    //std::cout<<"DIF="<<difference<<std::endl;
     return difference;
 }
 
