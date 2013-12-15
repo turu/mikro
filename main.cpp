@@ -6,6 +6,21 @@
 #include <cstdlib>
 #include <sys/time.h>
 
+int getTimeDifferenceInMS(const struct timeval & lhs, const struct timeval & rhs) {
+    int difference = 0;
+    difference = (lhs.tv_sec - rhs.tv_sec) * 1000;
+    if (difference < 0) {
+        difference = -difference;
+    }
+    int usecdiff = (lhs.tv_usec - rhs.tv_usec) / 1000;
+    if (usecdiff < 0) {
+        usecdiff = -usecdiff;
+    }
+    difference += usecdiff;
+    std::cout<<"DIF="<<difference<<std::endl;
+    return difference;
+}
+
 class TraceEntry {
     public:
         cv::Point point;
@@ -16,21 +31,6 @@ class Trackable {
     private:
         int traceTTL;
         std::deque<TraceEntry*> trace;
-
-        int getTimeDifferenceInMS(const struct timeval & lhs, const struct timeval & rhs) {
-            int difference = 0;
-            difference = (lhs.tv_sec - rhs.tv_sec) * 1000;
-            if (difference < 0) {
-                difference = -difference;
-            }
-            int usecdiff = (lhs.tv_usec - rhs.tv_usec) / 1000;
-            if (usecdiff < 0) {
-                usecdiff = -usecdiff;
-            }
-            difference += usecdiff;
-            std::cout<<"DIF="<<difference<<std::endl;
-            return difference;
-        }
 
     public:
         Trackable() : traceTTL(1000) {
@@ -86,7 +86,7 @@ class Trackable {
         }
 
         bool hasAnyPoints() {
-            return trace.empty();
+            return !trace.empty();
         }
 
         std::vector<cv::Point> getTracePoints() {
@@ -277,7 +277,7 @@ void drawTraces(cv::Mat & img, ObjectTracker * objectTracker) {
             curves[cid][i].y = trace[i].y;
         }
         curveLengths[cid] = trace.size();
-        std::cout<<"Current pos: "<<trackable->getLastLocalization()<<" Trace length: "<<trace.size()<<std::endl;
+        //std::cout<<"Current pos: "<<trackable->getLastLocalization()<<" Trace length: "<<trace.size()<<std::endl;
         cid++;
     }
     cv::polylines(img, (const cv::Point **) curves, curveLengths, cid, false, cvScalar(0, 255, 255), 2);
@@ -290,9 +290,9 @@ void drawTraces(cv::Mat & img, ObjectTracker * objectTracker) {
 
 int main(int argc, char *argv[])
 {
-    time_t now, prev;
-    time(&now);
-    time(&prev);
+    timeval now, prev;
+    gettimeofday(&now, NULL);
+    gettimeofday(&prev, NULL);
     std::cout<<"Entering crossroad"<<std::endl;
     std::string * filename = 0;
     if (argc > 1)
@@ -337,7 +337,7 @@ int main(int argc, char *argv[])
     //cv::namedWindow("Background",  CV_WINDOW_AUTOSIZE);
     //cv::namedWindow("Foreground", CV_WINDOW_AUTOSIZE);
 
-    ObjectTracker * objectTracker = new ObjectTracker(10, 625.);
+    ObjectTracker * objectTracker = new ObjectTracker(5000, 10000.);
 
     while (true)
     {
@@ -361,9 +361,9 @@ int main(int argc, char *argv[])
         //cv::imshow("Foreground", fore);
 
         if (cv::waitKey(30) >= 0) break;
-        time(&now);
-        double sec = difftime(now, prev);
-        time(&prev);
+        gettimeofday(&now, NULL);
+        double sec = (double)getTimeDifferenceInMS(now, prev) / 1000.;
+        gettimeofday(&prev, NULL);
         std::cout<<1./sec<<" fps"<<std::endl;
         std::cout<<"Total objects present: "<<objectTracker->getTrackedCount()<<std::endl;
     }
