@@ -77,6 +77,7 @@ class Trackable {
                 if (getTimeDifferenceInMS(now, lastEntry->time) > traceTTL) {
                     trace.pop_front();
                     delete lastEntry;
+                    std::cout<<"Removed last entry of a trace"<<std::endl;
                 } else {
                     return;
                 }
@@ -110,6 +111,7 @@ class ObjectTracker {
                 trackable->refresh();
                 if (!trackable->hasAnyPoints()) {
                     objects.pop_front();
+                    std::cout<<"Removed object with no points left"<<std::endl;
                 } else {
                     return;
                 }
@@ -160,8 +162,6 @@ class ObjectTracker {
                     if (getDistance(cog, trackable->getLastLocalization()) < distanceThreshold) {
                         trackable->signal(cog);
                         contours.erase(closest);
-                    } else {
-                        delete trackable;
                     }
                 }
             }
@@ -276,9 +276,10 @@ void drawTraces(cv::Mat & img, ObjectTracker * objectTracker) {
             curves[cid][i].y = trace[i].y;
         }
         curveLengths[cid] = trace.size();
+        std::cout<<"Current pos: "<<trackable->getLastLocalization()<<" Trace length: "<<trace.size()<<std::endl;
         cid++;
     }
-    cv::polylines(img, (const cv::Point **) curves, curveLengths, cid, false, cvScalar(0, 0, 255), 2);
+    cv::polylines(img, (const cv::Point **) curves, curveLengths, cid, false, cvScalar(0, 255, 255), 2);
     for (int i = 0; i < cid; i++) {
         delete[] curves[i];
     }
@@ -335,7 +336,7 @@ int main(int argc, char *argv[])
     //cv::namedWindow("Background",  CV_WINDOW_AUTOSIZE);
     //cv::namedWindow("Foreground", CV_WINDOW_AUTOSIZE);
 
-    ObjectTracker * objectTracker = new ObjectTracker(10000, 100);
+    ObjectTracker * objectTracker = new ObjectTracker(1000, 100000);
 
     while (true)
     {
