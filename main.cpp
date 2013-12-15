@@ -23,11 +23,12 @@ class Trackable {
             if (difference < 0) {
                 difference = -difference;
             }
-            int usecdiff = lhs.tv_usec - rhs.tv_usec;
+            int usecdiff = (lhs.tv_usec - rhs.tv_usec) / 1000;
             if (usecdiff < 0) {
                 usecdiff = -usecdiff;
             }
-            difference += usecdiff / 1000;
+            difference += usecdiff;
+            std::cout<<"DIF="<<difference<<std::endl;
             return difference;
         }
 
@@ -104,20 +105,6 @@ class ObjectTracker {
         int traceTTL;
         double distanceThreshold;
         std::deque<Trackable*> objects;
-
-        void refresh() {
-            while (!objects.empty()) {
-                Trackable * trackable = objects.front();
-                trackable->refresh();
-                if (!trackable->hasAnyPoints()) {
-                    objects.pop_front();
-                    std::cout<<"Removed object with no points left"<<std::endl;
-                } else {
-                    return;
-                }
-                delete trackable;
-            }
-        }
 
         double getDistance(cv::Point lhs, cv::Point rhs) {
             double xDist = lhs.x - rhs.x;
@@ -203,10 +190,24 @@ class ObjectTracker {
             return distanceThreshold;
         }
 
-        void record(std::vector<std::vector<cv::Point> > & contours) {
-            refresh();
-            appendToExisting(contours);
-            createNew(contours);
+        void refresh() {
+            while (!objects.empty()) {
+                Trackable * trackable = objects.front();
+                trackable->refresh();
+                if (!trackable->hasAnyPoints()) {
+                    objects.pop_front();
+                    std::cout<<"Removed object with no points left"<<std::endl;
+                } else {
+                    return;
+                }
+                delete trackable;
+            }
+        }
+
+        void record(const std::vector<std::vector<cv::Point> > & contours) {
+            std::vector<std::vector<cv::Point> > copyOfContours(contours);
+            appendToExisting(copyOfContours);
+            createNew(copyOfContours);
         }
 
         const std::deque<Trackable*> & getTracked() {
@@ -336,7 +337,7 @@ int main(int argc, char *argv[])
     //cv::namedWindow("Background",  CV_WINDOW_AUTOSIZE);
     //cv::namedWindow("Foreground", CV_WINDOW_AUTOSIZE);
 
-    ObjectTracker * objectTracker = new ObjectTracker(1000, 100000);
+    ObjectTracker * objectTracker = new ObjectTracker(10, 625.);
 
     while (true)
     {
@@ -351,6 +352,7 @@ int main(int argc, char *argv[])
         cv::findContours(fore, contours, CV_RETR_EXTERNAL, CV_CHAIN_APPROX_TC89_KCOS);
         findRectangles(contours, rectangles);
         filterSmall(rectangles, 100 * 100);
+        objectTracker->refresh();
         objectTracker->record(rectangles);
         cv::drawContours(frame, rectangles, -1, cv::Scalar(0, 0, 255), 2);
         drawTraces(frame, objectTracker);
